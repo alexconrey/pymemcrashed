@@ -6,20 +6,19 @@
   - Starts requested amount of memcached servers (`make run`)
   - Returns list of IPs for use in script (`make info`)
 
-2. Perform `make stop`
-  - Tears down docker containers built
-
-3. Execute `tcpdump` and wait for the magic:
+2. Execute `tcpdump` and wait for the magic:
 `tcpdump -vvv -i any port 11211`
 
-4. In this directory, create a `virtualenv`:
+3. In this directory, create a `virtualenv`:
 `virtualenv venv && source venv/bin/activate`
 
-5. Install python requirements:
+4. Install python requirements:
 `pip install -r requirements.txt`
 
-6. Modify `memcrashed.py` as needed and execute
+5. Modify `memcrashed.py` as needed and execute
 
+6. Perform `make stop`
+  - Tears down docker containers built
 ## Responsible disclosure
 Don't be an asshole, this was done as a learning project and I published this
 in the interest of the public to understand the simplicity and impact of this
