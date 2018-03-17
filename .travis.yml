@@ -16,7 +16,7 @@ matrix:
       - os: osx
         language: generic
         before_install:
-          - sudo /home/travis/alexconrey/pymemcrashed/.travis/install.sh
+          - sudo bash /home/travis/alexconrey/pymemcrashed/.travis/install.sh
         script:
           - make test
 cache: pip
