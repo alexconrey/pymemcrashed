@@ -16,7 +16,7 @@ matrix:
       - os: osx
         language: generic
         before_install:
-          - wget https://raw.github.com/pypa/pip/master/contrib/get-pip.py 
+          - wget https://bootstrap.pypa.io/get-pip.py 
           - sudo python get-pip.py
         script:
           - make test
