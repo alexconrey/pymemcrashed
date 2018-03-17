@@ -78,8 +78,7 @@ def work_magic(server, target):
 
         return True
     except Exception as err:
-        print str(err)
-        return False
+        raise
 
 
 def main():
