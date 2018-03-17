@@ -2,14 +2,23 @@ language: python
 python: 
   - "2.7"
 sudo: required
+matrix:
+  include:
+      - os: linux
+        sudo: required
+        python: 2.7
+        env: CONTAINER_COUNT=1
+      - os: osx
+        language: generic
+        env: CONTAINER_COUNT=1
 services:
   - docker
 before_install:
-  - CONTAINER_COUNT=1 make start
+  - make start
   - for i in $(docker ps | grep pymemcrashed | awk {'print $1'}); do docker inspect -f '{{range .NetworkSettings.Network}}{{.IPAddress}}{{end}}' $i >> server_list.txt; done
 cache: pip
 install:
   - pip install -r requirements.txt
 script:
   - make test 
-  - python memcrashed.py -l server_list.txt -t 172.17.0.1 -f
+  - sudo python memcrashed.py -l server_list.txt -t 172.17.0.1 -f
