@@ -21,4 +21,4 @@ install:
   - pip install -r requirements.txt
 script:
   - make test 
-  - sudo python memcrashed.py -l server_list.txt -t 172.17.0.1 -f
+  - sudo /home/travis/virtualenv/python2.7/bin/python memcrashed.py -l server_list.txt -t 172.17.0.1 -f
