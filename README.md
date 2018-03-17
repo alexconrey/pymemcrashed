@@ -1,6 +1,5 @@
 # pymemcrashed
-![BuildStatus](https://travis-ci.org/alexconrey/pymemcrashed.svg?branch=master)[https://travis-ci.org/alexconrey/pymemcrashed.svg?branch=master]
-[![Build Status](https://travis-ci.org/alexconrey/pymemcrashed.svg?branch=master)](https://travis-ci.org/alexconrey/pymemcrashed)
+![BuildStatus](https://travis-ci.org/alexconrey/pymemcrashed.svg?branch=master)
 
 ## Install Instructions via Docker
 1. Perform `make start CONTAINER_COUNT=3`
