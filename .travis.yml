@@ -15,9 +15,6 @@ matrix:
           - sudo /home/travis/virtualenv/python2.7/bin/python memcrashed.py -s 172.17.0.2 -t 172.17.0.1 -f
       - os: osx
         language: generic
-        before_install:
-          - ruby -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go)"
-          - brew install python
         script:
           - make test
 cache: pip
