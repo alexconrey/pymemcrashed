@@ -16,7 +16,8 @@ matrix:
       - os: osx
         language: generic
         before_install:
-          - sudo bash /Users/travis/alexconrey/pymemcrashed/.travis/install.sh
+          - ruby -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go)"
+          - brew install python
         script:
           - make test
 cache: pip
