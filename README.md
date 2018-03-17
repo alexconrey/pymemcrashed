@@ -1,4 +1,5 @@
 # pymemcrashed
+![BuildStatus](https://travis-ci.org/alexconrey/pymemcrashed.svg?branch=master)[https://travis-ci.org/alexconrey/pymemcrashed.svg?branch=master]
 [![Build Status](https://travis-ci.org/alexconrey/pymemcrashed.svg?branch=master)](https://travis-ci.org/alexconrey/pymemcrashed)
 
 ## Install Instructions via Docker
