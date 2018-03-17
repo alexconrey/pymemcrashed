@@ -18,6 +18,8 @@ matrix:
         before_install:
           - wget https://bootstrap.pypa.io/get-pip.py 
           - sudo python get-pip.py
+        install:
+          - sudo pip install -r requirements.txt
         script:
           - make test
 cache: pip
