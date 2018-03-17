@@ -16,6 +16,7 @@ services:
 before_install:
   - make start
   - for i in $(docker ps | grep pymemcrashed | awk {'print $1'}); do docker inspect -f '{{range .NetworkSettings.Network}}{{.IPAddress}}{{end}}' $i >> server_list.txt; done
+  - cat server_list.txt
 cache: pip
 install:
   - pip install -r requirements.txt
