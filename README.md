@@ -1,11 +1,13 @@
 # pymemcrashed
 
 ## Install Instructions via Docker
-1. In this directory, execute the following:
-`docker build --rm -t local/centos6 .`
+1. Perform `make start CONTAINER_COUNT=3`
+  - Builds docker image (`make build`)
+  - Starts requested amount of memcached servers (`make run`)
+  - Returns list of IPs for use in script (`make info`)
 
-2. Once that has completed, start the docker instance:
-`docker run -p 80:80/tcp -p 11211:11211/udp -ti local/centos6 bash`
+2. Perform `make stop`
+  - Tears down docker containers built
 
 3. Execute `tcpdump` and wait for the magic:
 `tcpdump -vvv -i any port 11211`
