@@ -15,6 +15,9 @@ matrix:
           - sudo /home/travis/virtualenv/python2.7/bin/python memcrashed.py -s 172.17.0.2 -t 172.17.0.1 -f
       - os: osx
         language: generic
+        before_install:
+          - curl -O http://python-distribute.org/distribute_setup.py && sudo python distribute_setup.py
+          - curl -O https://raw.github.com/pypa/pip/master/contrib/get-pip.py && sudo python get-pip.py
         script:
           - make test
 cache: pip
