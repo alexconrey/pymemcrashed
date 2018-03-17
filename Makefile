@@ -4,7 +4,7 @@
 # If you want more than 3 containers started
 # execute with CONTAINER_COUNT env set
 
-NAME := pymemcached:server
+NAME := alexconrey/pymemcached-server
 CONTAINER_COUNT ?= 3
 
 NUMBERS := $(shell seq 1 ${CONTAINER_COUNT})
