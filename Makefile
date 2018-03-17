@@ -20,6 +20,11 @@ run: build
 info: 
 	$(foreach ctname,$(CONTAINERS),docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(ctname);)
 
+lint:
+	pylint memcrashed.py --function-naming-style=snake_case --const-naming-style=snake_case
+
+test: lint
+
 start: build run info
 
 stop:
