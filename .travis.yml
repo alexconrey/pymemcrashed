@@ -2,12 +2,10 @@ language: python
 python: 
   - "2.7"
 sudo: required
+env: CONTAINER_COUNT=1
 matrix:
   include:
       - os: linux
-        sudo: required
-        python: 2.7
-        env: CONTAINER_COUNT=1
         services:
           - docker
         before_install:
@@ -16,8 +14,6 @@ matrix:
           - make test
           - sudo /home/travis/virtualenv/python2.7/bin/python memcrashed.py -s 172.17.0.2 -t 172.17.0.1 -f
       - os: osx
-        language: generic
-        env: CONTAINER_COUNT=1
         script:
           - make test
 cache: pip
