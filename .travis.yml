@@ -8,18 +8,18 @@ matrix:
         sudo: required
         python: 2.7
         env: CONTAINER_COUNT=1
+        services:
+          - docker
+        before_install:
+          - make start
+        script:
+          - make test
+          - sudo /home/travis/virtualenv/python2.7/bin/python memcrashed.py -s 172.17.0.2 -t 172.17.0.1 -f
       - os: osx
         language: generic
         env: CONTAINER_COUNT=1
-services:
-  - docker
-before_install:
-  - make start
-  - for i in $(docker ps | grep pymemcrashed | awk {'print $1'}); do docker inspect -f '{{range .NetworkSettings.Network}}{{.IPAddress}}{{end}}' $i >> server_list.txt; done
-  - cat server_list.txt
+        script:
+          - make test
 cache: pip
 install:
   - pip install -r requirements.txt
-script:
-  - make test 
-  - sudo /home/travis/virtualenv/python2.7/bin/python memcrashed.py -l server_list.txt -t 172.17.0.1 -f
